@@ -3,92 +3,76 @@ import KpiCard from "./components/KpiCard";
 import { transactions } from "../db/schema";
 import { and, eq, gte, lt } from "drizzle-orm";
 
-export default async function Home() {
-  // Henter alle transaksjoner som er markert som inntekt fra databasen
-  const revenueTransactions = await db
+//Henter transaksjoner for en bestemt type og periode,
+// og returnerer summen av beløpene
+async function getTransactionTotal(
+  type: "revenue" | "expense",
+  startDate: string,
+  endDate: string,
+) {
+  const result = await db
     .select()
     .from(transactions)
     .where(
       and(
-        eq(transactions.type, "revenue"),
-        gte(transactions.date, "2026-09-01"),
-        lt(transactions.date, "2026-10-01"),
+        eq(transactions.type, type),
+        gte(transactions.date, startDate),
+        lt(transactions.date, endDate),
       ),
     );
 
-  // Summerer alle inntektstransaksjonene til total revenue
-  const revenue = revenueTransactions.reduce((total, transaction) => {
+  return result.reduce((total, transaction) => {
     return total + Number(transaction.amount);
   }, 0);
+}
 
-  // Henter inntekter fra august 2026 for å sammenligne med september
-  const previousRevenueTransactions = await db
-    .select()
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.type, "revenue"),
-        gte(transactions.date, "2026-08-01"),
-        lt(transactions.date, "2026-09-01"),
-      ),
-    );
+// Beregner prosentvis endring mellom verdier
+// Returnerer 0 hvis forrige verdi er 0, slik at vi unngår deling på 0
+function calculatePercentageChange(
+  currentValue: number,
+  previousValue: number,
+) {
+  if (previousValue === 0) {
+    return 0;
+  }
 
-  // Summerer alle inntektene fra august
-  const previousRevenue = previousRevenueTransactions.reduce(
-    (total, transaction) => {
-      return total + Number(transaction.amount);
-    },
-    0,
+  return ((currentValue - previousValue) / previousValue) * 100;
+}
+
+export default async function Home() {
+  // Henter total inntekt for september
+  const revenue = await getTransactionTotal(
+    "revenue",
+    "2026-09-01",
+    "2026-10-01",
+  );
+
+  // Henter total inntekt for august
+  const previousRevenue = await getTransactionTotal(
+    "revenue",
+    "2026-08-01",
+    "2026-09-01",
   );
 
   // Beregner prosentvis endring i inntekt fra august til september
-  const revenueChange =
-    previousRevenue === 0
-      ? 0
-      : ((revenue - previousRevenue) / previousRevenue) * 100;
+  const revenueChange = calculatePercentageChange(revenue, previousRevenue);
 
-  // Henter alle transaksjoner som er markert som utgift
-  const expenseTransactions = await db
-    .select()
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.type, "expense"),
-        gte(transactions.date, "2026-09-01"),
-        lt(transactions.date, "2026-10-01"),
-      ),
-    );
+  // Henter totale utgifter for september
+  const expenses = await getTransactionTotal(
+    "expense",
+    "2026-09-01",
+    "2026-10-01",
+  );
 
-  // Summerer alle utgiftene
-  const expenses = expenseTransactions.reduce((total, transaction) => {
-    return total + Number(transaction.amount);
-  }, 0);
-
-  // Henter utgifter fra august 2026 for å sammenligne med september
-  const previousExpenseTransactions = await db
-    .select()
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.type, "expense"),
-        gte(transactions.date, "2026-08-01"),
-        lt(transactions.date, "2026-09-01"),
-      ),
-    );
-
-  // Summerer utgiftene fra august
-  const previousExpenses = previousExpenseTransactions.reduce(
-    (total, transaction) => {
-      return total + Number(transaction.amount);
-    },
-    0,
+  // Henter totale utgifter for august
+  const previousExpenses = await getTransactionTotal(
+    "expense",
+    "2026-08-01",
+    "2026-09-01",
   );
 
   // Beregner prosentvis endring i utgiftene fra august til september
-  const expenseChange =
-    previousExpenses === 0
-      ? 0
-      : ((expenses - previousExpenses) / previousExpenses) * 100;
+  const expenseChange = calculatePercentageChange(expenses, previousExpenses);
 
   // Beregner resultat: inntekter minus utgifter
   const profit = revenue - expenses;
@@ -97,10 +81,7 @@ export default async function Home() {
   const previousProfit = previousRevenue - previousExpenses;
 
   // Beregner prosentvis endring i resultat fra august til september
-  const profitChange =
-    previousProfit === 0
-      ? 0
-      : ((profit - previousProfit) / previousProfit) * 100;
+  const profitChange = calculatePercentageChange(profit, previousProfit);
 
   return (
     <div className="p-8">
