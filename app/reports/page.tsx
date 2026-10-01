@@ -1,45 +1,62 @@
 import { db } from "../../db";
 import { transactions } from "@/db/schema";
 import ReportBar from "../components/ReportBar";
-
-function calculateTotal(
-  transactions: { type: string; amount: string }[],
-  type: "revenue" | "expense",
-) {
-  return transactions
-    .filter((transaction) => transaction.type === type)
-    .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
-}
+import { sql } from "drizzle-orm";
 
 export default async function ReportsPage() {
-  // Henter alle transaksjoner fra databasen
-  const allTransactions = await db.select().from(transactions);
+  const totalsByType = await db
+    .select({
+      type: transactions.type,
+      total: sql<string>`SUM(${transactions.amount})`,
+    })
+    .from(transactions)
+    .groupBy(transactions.type);
 
-  // Summerer alle inntekter og utgifter
-  const revenue = calculateTotal(allTransactions, "revenue");
-  const expenses = calculateTotal(allTransactions, "expense");
+  const totalsByMonthAndType = await db
+    .select({
+      month: sql<string>`TO_CHAR(${transactions.date}, 'YYYY-MM')`,
+      type: transactions.type,
+      total: sql<string>`SUM(${transactions.amount})`,
+    })
+    .from(transactions)
+    .groupBy(sql`TO_CHAR(${transactions.date}, 'YYYY-MM')`, transactions.type);
 
-  // Resultat = inntekter - utgifter
+  const revenue = Number(
+    totalsByType.find((row) => row.type === "revenue")?.total ?? 0,
+  );
+
+  const expenses = Number(
+    totalsByType.find((row) => row.type === "expense")?.total ?? 0,
+  );
+
   const profit = revenue - expenses;
 
-  // Henter transaksjoner fra september
-  const septemberTransactions = allTransactions.filter((transaction) =>
-    transaction.date.startsWith("2026-09"),
+  const septemberRevenue = Number(
+    totalsByMonthAndType.find(
+      (row) => row.month === "2026-09" && row.type === "revenue",
+    )?.total ?? 0,
   );
 
-  // Henter transaksjoner fra august
-  const augustTransactions = allTransactions.filter((transaction) =>
-    transaction.date.startsWith("2026-08"),
+  const septemberExpenses = Number(
+    totalsByMonthAndType.find(
+      (row) => row.month === "2026-09" && row.type === "expense",
+    )?.total ?? 0,
   );
 
-  // Beregner tall for september
-  const septemberRevenue = calculateTotal(septemberTransactions, "revenue");
-  const septemberExpenses = calculateTotal(septemberTransactions, "expense");
   const septemberProfit = septemberRevenue - septemberExpenses;
 
-  // Beregner tall for august
-  const augustRevenue = calculateTotal(augustTransactions, "revenue");
-  const augustExpenses = calculateTotal(augustTransactions, "expense");
+  const augustRevenue = Number(
+    totalsByMonthAndType.find(
+      (row) => row.month === "2026-08" && row.type === "revenue",
+    )?.total ?? 0,
+  );
+
+  const augustExpenses = Number(
+    totalsByMonthAndType.find(
+      (row) => row.month === "2026-08" && row.type === "expense",
+    )?.total ?? 0,
+  );
+
   const augustProfit = augustRevenue - augustExpenses;
 
   // Beregner prosentvis endring fra august til september
@@ -165,14 +182,14 @@ export default async function ReportsPage() {
 
             {/* August revenue */}
             <ReportBar
-              label="August Revenue"
+              label="August"
               amount={augustRevenue}
               width={augustRevenueWidth}
             />
 
             {/* September revenue */}
             <ReportBar
-              label="September Revenue"
+              label="September"
               amount={septemberRevenue}
               width={100}
             />
