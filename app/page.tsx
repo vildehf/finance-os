@@ -95,12 +95,14 @@ export default async function Home() {
           title="Revenue"
           value={`${revenue.toLocaleString("nb-NO")} kr`}
           change={`${revenueChange >= 0 ? "+" : ""}${revenueChange.toFixed(1)}%`}
+          href="/transactions?type=revenue"
         />
 
         <KpiCard
           title="Expenses"
           value={`${expenses.toLocaleString("nb-NO")} kr`}
           change={`${expenseChange >= 0 ? "+" : ""}${expenseChange.toFixed(1)}%`}
+          href="/transactions?type=expense"
         />
 
         <KpiCard
