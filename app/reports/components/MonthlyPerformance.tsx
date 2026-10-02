@@ -8,6 +8,7 @@ type MonthData = {
 type MonthlyPerformanceProps = {
   previousMonth: MonthData;
   selectedMonth: MonthData;
+  hasPreviousMonthData: boolean;
   changes: {
     revenue: number | null;
     expenses: number | null;
@@ -16,6 +17,7 @@ type MonthlyPerformanceProps = {
 };
 
 export default function MonthlyPerformance({
+  hasPreviousMonthData,
   previousMonth,
   selectedMonth,
   changes,
@@ -35,17 +37,23 @@ export default function MonthlyPerformance({
         <article className="rounded-lg border p-5">
           <h3 className="text-sm text-gray-500">{previousMonth.label}</h3>
 
-          <p className="mt-2 font-medium">
-            Revenue: {previousMonth.revenue.toLocaleString("nb-NO")} kr
-          </p>
-
-          <p className="mt-2 font-medium">
-            Expenses: {previousMonth.expenses.toLocaleString("nb-NO")} kr
-          </p>
-
-          <p className="mt-2 font-medium">
-            Profit: {previousMonth.profit.toLocaleString("nb-NO")} kr
-          </p>
+          {hasPreviousMonthData ? (
+            <>
+              <p className="mt-2 font-medium">
+                Revenue: {previousMonth.revenue.toLocaleString("nb-NO")} kr
+              </p>
+              <p className="mt-2 font-medium">
+                Expenses: {previousMonth.expenses.toLocaleString("nb-NO")} kr
+              </p>
+              <p className="mt-2 font-medium">
+                Profit: {previousMonth.profit.toLocaleString("nb-NO")} kr
+              </p>
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-gray-500">
+              No transaction data available for this month.
+            </p>
+          )}
         </article>
 
         {/* Selected month */}

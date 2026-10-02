@@ -15,6 +15,13 @@
       "when": 1790759277743,
       "tag": "0001_nappy_blink",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790956876879,
+      "tag": "0002_pretty_wraith",
+      "breakpoints": true
     }
   ]
 }

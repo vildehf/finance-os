@@ -8,3 +8,10 @@ export const transactions = pgTable("transactions", {
   category: text("category").notNull(),
   type: text("type").notNull(),
 });
+
+export const budgets = pgTable("budgets", {
+  id: serial("id").primaryKey(),
+  month: date("month").notNull(),
+  revenue: numeric("revenue").notNull(),
+  expenses: numeric("expenses").notNull(),
+});

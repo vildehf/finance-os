@@ -1,10 +1,12 @@
 import { db } from "../../db";
-import { transactions } from "@/db/schema";
+import { transactions, budgets } from "@/db/schema";
 import ReportBar from "../components/ReportBar";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import MonthSelector from "./components/MonthSelector";
 import MonthlyPerformance from "./components/MonthlyPerformance";
+import BudgetVsActual from "./components/BudgetVsActual";
 
+// Beregner endring mellom valgt måned og måneden før.
 function calculatePercentageChange(current: number, previous: number) {
   if (previous === 0) {
     return null;
@@ -19,7 +21,7 @@ export default async function ReportsPage({
   searchParams: Promise<{ month?: string }>;
 }) {
   const params = await searchParams;
-
+  // Henter totale inntekter og kostnader på tvers av alle transaksjoner.
   const totalsByType = await db
     .select({
       type: transactions.type,
@@ -27,7 +29,7 @@ export default async function ReportsPage({
     })
     .from(transactions)
     .groupBy(transactions.type);
-
+  // Henter summerte inntekter og kostnader gruppert per måned.
   const totalsByMonthAndType = await db
     .select({
       month: sql<string>`TO_CHAR(${transactions.date}, 'YYYY-MM')`,
@@ -36,14 +38,21 @@ export default async function ReportsPage({
     })
     .from(transactions)
     .groupBy(sql`TO_CHAR(${transactions.date}, 'YYYY-MM')`, transactions.type);
-
+  // Lager en sortert liste over måneder som finnes i transaksjonsdataene.
   const availableMonths = [
     ...new Set(totalsByMonthAndType.map((row) => row.month)),
   ].sort();
-
+  // Bruker nyeste tilgjengelige måned dersom URL-en ikke har valgt en måned.
   const latestMonth = availableMonths.at(-1) ?? "2026-09";
   const selectedMonth = params.month ?? latestMonth;
 
+  // Henter budsjettet som tilhører måneden brukeren har valgt.
+  const [selectedBudget] = await db
+    .select()
+    .from(budgets)
+    .where(eq(budgets.month, `${selectedMonth}-01`))
+    .limit(1);
+  // Finner måneden før valgt måned for måned-til-måned-sammenligningen.
   const [year, month] = selectedMonth.split("-").map(Number);
 
   const previousDate = new Date(year, month - 2);
@@ -51,6 +60,8 @@ export default async function ReportsPage({
   const previousMonth = `${previousDate.getFullYear()}-${String(
     previousDate.getMonth() + 1,
   ).padStart(2, "0")}`;
+  // Sjekker om forrige måned faktisk finnes i transaksjonsdataene.
+  const hasPreviousMonthData = availableMonths.includes(previousMonth);
 
   const selectedMonthLabel = new Date(`${selectedMonth}-01`).toLocaleString(
     "en-US",
@@ -92,6 +103,18 @@ export default async function ReportsPage({
 
   const selectedProfit = selectedRevenue - selectedExpenses;
 
+  // Gjør budsjettert revenue og expenses om fra PostgreSQL numeric til number.
+  const budgetRevenue = Number(selectedBudget?.revenue ?? 0);
+  const budgetExpenses = Number(selectedBudget?.expenses ?? 0);
+
+  // Beregner budsjettert profit i stedet for å lagre samme informasjon i databasen.
+  const budgetProfit = budgetRevenue - budgetExpenses;
+
+  // Beregner avviket mellom faktiske tall og budsjettet.
+  const revenueVariance = selectedRevenue - budgetRevenue;
+  const expensesVariance = selectedExpenses - budgetExpenses;
+  const profitVariance = selectedProfit - budgetProfit;
+
   const previousRevenue = Number(
     totalsByMonthAndType.find(
       (row) => row.month === previousMonth && row.type === "revenue",
@@ -106,7 +129,7 @@ export default async function ReportsPage({
 
   const previousProfit = previousRevenue - previousExpenses;
 
-  // Beregner prosentvis endring fra august til september
+  // Beregner prosentvis endring fra forrige måned til valgt. måned.
   const revenueChange = calculatePercentageChange(
     selectedRevenue,
     previousRevenue,
@@ -122,13 +145,13 @@ export default async function ReportsPage({
     previousProfit,
   );
 
-  // Bruker september som referanse for bredden på revenue-stolpen
+  // Beregner bredden på forrige måneds revenue-stolpe relativt til valgt måned.
   const previousRevenueWidth = (previousRevenue / selectedRevenue) * 100;
 
-  // Bruker september som referanse for bredden på expense-stolpen
+  // Bruker bredden på forrige måneds exspense-stolpe relativt til valgt måned.
   const previousExpensesWidth = (previousExpenses / selectedExpenses) * 100;
 
-  // Bruker september som referanse for bredden på profit-stolpen
+  // Beregner bredden på forrige måneds profit-stolpe relativt til valgt måned.
   const previousProfitWidth = (previousProfit / selectedProfit) * 100;
 
   return (
@@ -176,6 +199,7 @@ export default async function ReportsPage({
 
       {/* Månedssammenligning */}
       <MonthlyPerformance
+        hasPreviousMonthData={hasPreviousMonthData}
         previousMonth={{
           label: previousMonthLabel,
           revenue: previousRevenue,
@@ -195,6 +219,35 @@ export default async function ReportsPage({
         }}
       />
 
+      {/* Viser budsjett-sammenligning når budsjett finnes, ellers en tydelig melding. */}
+      {selectedBudget ? (
+        <BudgetVsActual
+          monthLabel={selectedMonthLabel}
+          budget={{
+            revenue: budgetRevenue,
+            expenses: budgetExpenses,
+            profit: budgetProfit,
+          }}
+          actual={{
+            revenue: selectedRevenue,
+            expenses: selectedExpenses,
+            profit: selectedProfit,
+          }}
+          variance={{
+            revenue: revenueVariance,
+            expenses: expensesVariance,
+            profit: profitVariance,
+          }}
+        />
+      ) : (
+        <section className="mt-10 rounded-lg border p-5">
+          <h2 className="text-xl font-semibold">Budget vs actual</h2>
+          <p className="mt-2 text-sm text-gray-500">
+            No budget available for {selectedMonthLabel}.
+          </p>
+        </section>
+      )}
+
       {/* Finansiell visualisering */}
       <section className="mt-8">
         <h3 className="font-semibold">Financial overview</h3>
@@ -207,6 +260,7 @@ export default async function ReportsPage({
             label={previousMonthLabel}
             amount={previousRevenue}
             width={previousRevenueWidth}
+            hasData={hasPreviousMonthData}
           />
 
           {/* Selected month revenue */}
@@ -224,6 +278,7 @@ export default async function ReportsPage({
             label={previousMonthLabel}
             amount={previousExpenses}
             width={previousExpensesWidth}
+            hasData={hasPreviousMonthData}
           />
 
           <ReportBar
@@ -240,6 +295,7 @@ export default async function ReportsPage({
             label={previousMonthLabel}
             amount={previousProfit}
             width={previousProfitWidth}
+            hasData={hasPreviousMonthData}
           />
 
           <ReportBar
