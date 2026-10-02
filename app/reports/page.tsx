@@ -2,8 +2,24 @@ import { db } from "../../db";
 import { transactions } from "@/db/schema";
 import ReportBar from "../components/ReportBar";
 import { sql } from "drizzle-orm";
+import MonthSelector from "./components/MonthSelector";
+import MonthlyPerformance from "./components/MonthlyPerformance";
 
-export default async function ReportsPage() {
+function calculatePercentageChange(current: number, previous: number) {
+  if (previous === 0) {
+    return null;
+  }
+
+  return ((current - previous) / previous) * 100;
+}
+
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string }>;
+}) {
+  const params = await searchParams;
+
   const totalsByType = await db
     .select({
       type: transactions.type,
@@ -21,6 +37,37 @@ export default async function ReportsPage() {
     .from(transactions)
     .groupBy(sql`TO_CHAR(${transactions.date}, 'YYYY-MM')`, transactions.type);
 
+  const availableMonths = [
+    ...new Set(totalsByMonthAndType.map((row) => row.month)),
+  ].sort();
+
+  const latestMonth = availableMonths.at(-1) ?? "2026-09";
+  const selectedMonth = params.month ?? latestMonth;
+
+  const [year, month] = selectedMonth.split("-").map(Number);
+
+  const previousDate = new Date(year, month - 2);
+
+  const previousMonth = `${previousDate.getFullYear()}-${String(
+    previousDate.getMonth() + 1,
+  ).padStart(2, "0")}`;
+
+  const selectedMonthLabel = new Date(`${selectedMonth}-01`).toLocaleString(
+    "en-US",
+    {
+      month: "long",
+      year: "numeric",
+    },
+  );
+
+  const previousMonthLabel = new Date(`${previousMonth}-01`).toLocaleString(
+    "en-US",
+    {
+      month: "long",
+      year: "numeric",
+    },
+  );
+
   const revenue = Number(
     totalsByType.find((row) => row.type === "revenue")?.total ?? 0,
   );
@@ -31,51 +78,58 @@ export default async function ReportsPage() {
 
   const profit = revenue - expenses;
 
-  const septemberRevenue = Number(
+  const selectedRevenue = Number(
     totalsByMonthAndType.find(
-      (row) => row.month === "2026-09" && row.type === "revenue",
+      (row) => row.month === selectedMonth && row.type === "revenue",
     )?.total ?? 0,
   );
 
-  const septemberExpenses = Number(
+  const selectedExpenses = Number(
     totalsByMonthAndType.find(
-      (row) => row.month === "2026-09" && row.type === "expense",
+      (row) => row.month === selectedMonth && row.type === "expense",
     )?.total ?? 0,
   );
 
-  const septemberProfit = septemberRevenue - septemberExpenses;
+  const selectedProfit = selectedRevenue - selectedExpenses;
 
-  const augustRevenue = Number(
+  const previousRevenue = Number(
     totalsByMonthAndType.find(
-      (row) => row.month === "2026-08" && row.type === "revenue",
+      (row) => row.month === previousMonth && row.type === "revenue",
     )?.total ?? 0,
   );
 
-  const augustExpenses = Number(
+  const previousExpenses = Number(
     totalsByMonthAndType.find(
-      (row) => row.month === "2026-08" && row.type === "expense",
+      (row) => row.month === previousMonth && row.type === "expense",
     )?.total ?? 0,
   );
 
-  const augustProfit = augustRevenue - augustExpenses;
+  const previousProfit = previousRevenue - previousExpenses;
 
   // Beregner prosentvis endring fra august til september
-  const revenueChange =
-    ((septemberRevenue - augustRevenue) / augustRevenue) * 100;
+  const revenueChange = calculatePercentageChange(
+    selectedRevenue,
+    previousRevenue,
+  );
 
-  const expensesChange =
-    ((septemberExpenses - augustExpenses) / augustExpenses) * 100;
+  const expensesChange = calculatePercentageChange(
+    selectedExpenses,
+    previousExpenses,
+  );
 
-  const profitChange = ((septemberProfit - augustProfit) / augustProfit) * 100;
+  const profitChange = calculatePercentageChange(
+    selectedProfit,
+    previousProfit,
+  );
 
   // Bruker september som referanse for bredden på revenue-stolpen
-  const augustRevenueWidth = (augustRevenue / septemberRevenue) * 100;
+  const previousRevenueWidth = (previousRevenue / selectedRevenue) * 100;
 
   // Bruker september som referanse for bredden på expense-stolpen
-  const augustExpensesWidth = (augustExpenses / septemberExpenses) * 100;
+  const previousExpensesWidth = (previousExpenses / selectedExpenses) * 100;
 
   // Bruker september som referanse for bredden på profit-stolpen
-  const augustProfitWidth = (augustProfit / septemberProfit) * 100;
+  const previousProfitWidth = (previousProfit / selectedProfit) * 100;
 
   return (
     <main className="p-8">
@@ -87,6 +141,11 @@ export default async function ReportsPage() {
           Analyze company financial performance.
         </p>
       </header>
+
+      <MonthSelector
+        availableMonths={availableMonths}
+        selectedMonth={selectedMonth}
+      />
 
       {/* Totaltall */}
       <section className="mt-8 grid grid-cols-3 gap-4">
@@ -116,113 +175,79 @@ export default async function ReportsPage() {
       </section>
 
       {/* Månedssammenligning */}
-      <section className="mt-10">
-        <header>
-          <h2 className="text-xl font-semibold">Monthly performance</h2>
+      <MonthlyPerformance
+        previousMonth={{
+          label: previousMonthLabel,
+          revenue: previousRevenue,
+          expenses: previousExpenses,
+          profit: previousProfit,
+        }}
+        selectedMonth={{
+          label: selectedMonthLabel,
+          revenue: selectedRevenue,
+          expenses: selectedExpenses,
+          profit: selectedProfit,
+        }}
+        changes={{
+          revenue: revenueChange,
+          expenses: expensesChange,
+          profit: profitChange,
+        }}
+      />
 
-          <p className="mt-1 text-sm text-gray-500">
-            August compared with September 2026.
-          </p>
-        </header>
+      {/* Finansiell visualisering */}
+      <section className="mt-8">
+        <h3 className="font-semibold">Financial overview</h3>
 
-        <div className="mt-6 grid grid-cols-2 gap-4">
-          {/* August */}
-          <article className="rounded-lg border p-5">
-            <h3 className="text-sm text-gray-500">August</h3>
+        <article className="mt-6 rounded-lg border p-5">
+          <h4 className="font-medium">Revenue</h4>
 
-            <p className="mt-2 font-medium">
-              Revenue: {augustRevenue.toLocaleString("nb-NO")} kr
-            </p>
+          {/* Previous month revenue */}
+          <ReportBar
+            label={previousMonthLabel}
+            amount={previousRevenue}
+            width={previousRevenueWidth}
+          />
 
-            <p className="mt-2 font-medium">
-              Expenses: {augustExpenses.toLocaleString("nb-NO")} kr
-            </p>
+          {/* Selected month revenue */}
+          <ReportBar
+            label={selectedMonthLabel}
+            amount={selectedRevenue}
+            width={100}
+          />
+        </article>
 
-            <p className="mt-2 font-medium">
-              Profit: {augustProfit.toLocaleString("nb-NO")} kr
-            </p>
-          </article>
+        <article className="mt-6 rounded-lg border p-5">
+          <h4 className="font-medium">Expenses</h4>
 
-          {/* September */}
-          <article className="rounded-lg border p-5">
-            <h3 className="text-sm text-gray-500">September</h3>
+          <ReportBar
+            label={previousMonthLabel}
+            amount={previousExpenses}
+            width={previousExpensesWidth}
+          />
 
-            <p className="mt-2 font-medium">
-              Revenue: {septemberRevenue.toLocaleString("nb-NO")} kr
-            </p>
+          <ReportBar
+            label={selectedMonthLabel}
+            amount={selectedExpenses}
+            width={100}
+          />
+        </article>
 
-            <p className="mt-1 text-sm text-green-600">
-              +{revenueChange.toFixed(1)}% from August
-            </p>
+        <article className="mt-6 rounded-lg border p-5">
+          <h4 className="font-medium">Profit</h4>
 
-            <p className="mt-2 font-medium">
-              Expenses: {septemberExpenses.toLocaleString("nb-NO")} kr
-            </p>
+          <ReportBar
+            label={previousMonthLabel}
+            amount={previousProfit}
+            width={previousProfitWidth}
+          />
 
-            <p className="mt-1 text-sm text-gray-500">
-              +{expensesChange.toFixed(1)}% from August
-            </p>
-
-            <p className="mt-2 font-medium">
-              Profit: {septemberProfit.toLocaleString("nb-NO")} kr
-            </p>
-
-            <p className="mt-1 text-sm text-green-600">
-              +{profitChange.toFixed(1)}% from August
-            </p>
-          </article>
-        </div>
-
-        {/* Finansiell visualisering */}
-        <section className="mt-8">
-          <h3 className="font-semibold">Financial overview</h3>
-
-          <article className="mt-6 rounded-lg border p-5">
-            <h4 className="font-medium">Revenue</h4>
-
-            {/* August revenue */}
-            <ReportBar
-              label="August"
-              amount={augustRevenue}
-              width={augustRevenueWidth}
-            />
-
-            {/* September revenue */}
-            <ReportBar
-              label="September"
-              amount={septemberRevenue}
-              width={100}
-            />
-          </article>
-
-          <article className="mt-6 rounded-lg border p-5">
-            <h4 className="font-medium">Expenses</h4>
-
-            <ReportBar
-              label="August"
-              amount={augustExpenses}
-              width={augustExpensesWidth}
-            />
-
-            <ReportBar
-              label="September"
-              amount={septemberExpenses}
-              width={100}
-            />
-          </article>
-
-          <article className="mt-6 rounded-lg border p-5">
-            <h4 className="font-medium">Profit</h4>
-
-            <ReportBar
-              label="August"
-              amount={augustProfit}
-              width={augustProfitWidth}
-            />
-
-            <ReportBar label="September" amount={septemberProfit} width={100} />
-          </article>
-        </section>
+          <ReportBar
+            label={selectedMonthLabel}
+            amount={selectedProfit}
+            width={100}
+          />
+        </article>
       </section>
     </main>
   );
