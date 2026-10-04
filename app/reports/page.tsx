@@ -5,6 +5,8 @@ import { eq, sql } from "drizzle-orm";
 import MonthSelector from "./components/MonthSelector";
 import MonthlyPerformance from "./components/MonthlyPerformance";
 import BudgetVsActual from "./components/BudgetVsActual";
+import Forecast from "./components/Forecast";
+import { calculateForecast } from "./lib/forecast";
 
 // Beregner endring mellom valgt måned og måneden før.
 function calculatePercentageChange(current: number, previous: number) {
@@ -154,6 +156,9 @@ export default async function ReportsPage({
   // Beregner bredden på forrige måneds profit-stolpe relativt til valgt måned.
   const previousProfitWidth = (previousProfit / selectedProfit) * 100;
 
+  // Beregner forecast for måneden etter valgt rapportperiode.
+  const forecast = await calculateForecast(selectedMonth);
+
   return (
     <main className="p-8">
       {/* Sideoverskrift */}
@@ -244,6 +249,25 @@ export default async function ReportsPage({
           <h2 className="text-xl font-semibold">Budget vs actual</h2>
           <p className="mt-2 text-sm text-gray-500">
             No budget available for {selectedMonthLabel}.
+          </p>
+        </section>
+      )}
+
+      {/* Viser forecast når nok historikk finnes, ellers forklarer hvorfor den ikke kan beregnes. */}
+      {forecast ? (
+        <Forecast
+          month={forecast.month}
+          basedOn={forecast.basedOn}
+          revenue={forecast.revenue}
+          expenses={forecast.expenses}
+          profit={forecast.profit}
+        />
+      ) : (
+        <section className="mt-10 rounded-lg border p-5">
+          <h2 className="text-xl font-semibold">Forecast unavailable</h2>
+          <p className="mt-2 text-sm text-gray-500">
+            At least 3 months of transaction history are required to calculate a
+            forecast.
           </p>
         </section>
       )}

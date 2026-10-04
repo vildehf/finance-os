@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed:budgets": "tsx --env-file=.env.local db/seed-budgets.ts"
+    "seed:budgets": "tsx --env-file=.env.local db/seed-budgets.ts",
+    "seed:transactions": "tsx --env-file=.env.local db/seed-transactions.ts"
   },
   "dependencies": {
     "dotenv": "^18.0.4",
