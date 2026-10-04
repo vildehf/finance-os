@@ -7,6 +7,8 @@ import MonthlyPerformance from "./components/MonthlyPerformance";
 import BudgetVsActual from "./components/BudgetVsActual";
 import Forecast from "./components/Forecast";
 import { calculateForecast } from "./lib/forecast";
+import { generateFinancialInsights } from "./lib/insights";
+import FinancialInsights from "./components/FinancialInsights";
 
 // Beregner endring mellom valgt måned og måneden før.
 function calculatePercentageChange(current: number, previous: number) {
@@ -156,6 +158,18 @@ export default async function ReportsPage({
   // Beregner bredden på forrige måneds profit-stolpe relativt til valgt måned.
   const previousProfitWidth = (previousProfit / selectedProfit) * 100;
 
+  // Genererer finansielle innsikter fra rapportdataene som allerede er hentet.
+  const insights = generateFinancialInsights({
+    month: selectedMonth,
+    revenue: selectedRevenue,
+    expenses: selectedExpenses,
+    profit: selectedProfit,
+    previousMonth: hasPreviousMonthData ? previousMonthLabel : null,
+    previousRevenue: hasPreviousMonthData ? previousRevenue : null,
+    previousExpenses: hasPreviousMonthData ? previousExpenses : null,
+    budgetProfit: selectedBudget ? budgetProfit : null,
+  });
+
   // Beregner forecast for måneden etter valgt rapportperiode.
   const forecast = await calculateForecast(selectedMonth);
 
@@ -252,6 +266,9 @@ export default async function ReportsPage({
           </p>
         </section>
       )}
+
+      {/* Viser nøkkelinnsikter basert på rapportdataene for valgt periode. */}
+      <FinancialInsights insights={insights} />
 
       {/* Viser forecast når nok historikk finnes, ellers forklarer hvorfor den ikke kan beregnes. */}
       {forecast ? (
