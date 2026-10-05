@@ -21,10 +21,10 @@ export default function MonthSelector({
           <Link
             key={month}
             href={`/reports?month=${month}`}
-            className={`rounded-md border px-3 py-2 text-sm ${
+            className={`rounded-md border px-3 py-2 text-sm transition-colors ${
               selectedMonth === month
-                ? "bg-black text-white"
-                : "bg-white text-gray-700"
+                ? "border-blue-700 bg-blue-700 text-white"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-blue-50"
             }`}
           >
             {monthLabel}

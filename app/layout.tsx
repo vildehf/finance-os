@@ -25,10 +25,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body>
-        <div className="flex min-h-screen">
+        <div className="flex min-h-screen flex-col md:flex-row">
           <SideBar />
 
-          <main className="flex-1">{children}</main>
+          <div className="min-w-0 flex-1">{children}</div>
         </div>
       </body>
     </html>

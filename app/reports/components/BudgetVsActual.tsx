@@ -55,20 +55,23 @@ export default function BudgetVsActual({
   const revenueStatus = getVarianceStatus(variance.revenue, "revenue");
   const expensesStatus = getVarianceStatus(variance.expenses, "expenses");
   const profitStatus = getVarianceStatus(variance.profit, "profit");
+
   // Bestemmer visuell statusfarge for hvert budsjettavvik.
   const revenueStatusClass = getVarianceStatusClass(revenueStatus);
   const expensesStatusClass = getVarianceStatusClass(expensesStatus);
   const profitStatusClass = getVarianceStatusClass(profitStatus);
+
   return (
     <section className="mt-10">
-      <header>
+      <header className="text-center md:text-left">
         <h2 className="text-xl font-semibold">Budget vs actual</h2>
         <p className="mt-1 text-sm text-gray-500">
           Financial performance against budget for {monthLabel}.
         </p>
       </header>
-      <table className="mt-6 w-full overflow-hidden rounded-lg border text-left">
-        <thead className="border-b bg-gray-50 text-sm text-gray-600">
+
+      <table className="mt-6 w-full overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-sm">
+        <thead className="border-b border-slate-200 bg-slate-50 text-sm text-slate-600">
           <tr>
             <th className="p-4 font-medium">Metric</th>
             <th className="p-4 text-right font-medium">Budget</th>
@@ -76,7 +79,6 @@ export default function BudgetVsActual({
             <th className="p-4 text-right font-medium">Variance</th>
           </tr>
         </thead>
-
         <tbody>
           <tr className="border-b">
             <th className="p-4 font-medium">Revenue</th>

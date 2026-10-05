@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { transactions } from "@/db/schema";
 import { db } from "../../db";
-import { desc, eq, and, gte, lt } from "drizzle-orm";
+import { desc, eq, and, gte, lt, ilike, or, sql } from "drizzle-orm";
+import TransactionSearch from "./components/TransactionSearch";
 
 // Formaterer dato fra YYYY-MM-DD til DD.MM.YYYY
 function formatDate(date: string) {
@@ -14,17 +15,42 @@ function capitalize(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+// Bygger filterlenker uten å miste aktive måneds- eller søkefiltre.
+function buildFilterHref({
+  type,
+  month,
+  search,
+}: {
+  type?: string;
+  month?: string;
+  search?: string;
+}) {
+  const params = new URLSearchParams();
+
+  if (type) params.set("type", type);
+  if (month) params.set("month", month);
+  if (search) params.set("search", search);
+
+  const query = params.toString();
+
+  return query ? `/transactions?${query}` : "/transactions";
+}
+
 export default async function TransactionsPage({
   searchParams,
 }: {
   searchParams: Promise<{
     type?: string;
     month?: string;
+    search?: string;
   }>;
 }) {
   const params = await searchParams;
   const type = params.type;
   const month = params.month;
+  const search = params.search?.trim();
+  const normalizedSearch =
+    search?.toLowerCase() === "expenses" ? "expense" : search;
   const monthLabel = month
     ? new Date(`${month}-01`).toLocaleString("en-US", {
         month: "long",
@@ -47,8 +73,8 @@ export default async function TransactionsPage({
         "0",
       )}-01`
     : undefined;
-  // Henter transaksjoner fra databasen.
-  // Hvis URL-en har et gyldig type-filter, filtrerer vi i databasen.
+
+  // Henter transaksjoner og kombinerer aktive type-, måneds- og søkefiltre.
   const allTransactions = await db
     .select()
     .from(transactions)
@@ -57,67 +83,85 @@ export default async function TransactionsPage({
         validType ? eq(transactions.type, validType) : undefined,
         startDate ? gte(transactions.date, startDate) : undefined,
         endDate ? lt(transactions.date, endDate) : undefined,
+        normalizedSearch
+          ? or(
+              ilike(transactions.description, `%${normalizedSearch}%`),
+              ilike(transactions.category, `%${normalizedSearch}%`),
+              ilike(transactions.type, `%${normalizedSearch}%`),
+              sql`${transactions.date}::text ILIKE ${`%${normalizedSearch}%`}`,
+            )
+          : undefined,
       ),
     )
     .orderBy(desc(transactions.date));
 
   return (
-    <div className="p-8">
-      <div>
-        <h1 className="text-3xl font-semibold">Transactions</h1>{" "}
+    <main className="min-h-screen bg-slate-50 p-4 md:p-8">
+      <header className="text-center md:text-left">
+        <h1 className="text-3xl font-semibold">Transactions</h1>
         <p className="mt-2 text-gray-500">
           View and analyze company transactions.
         </p>
+
         {monthLabel && (
           <p className="mt-2 text-sm font-medium text-gray-700">{monthLabel}</p>
         )}
-      </div>
+      </header>
 
       {/* Filter */}
-      <div className="mt-6 flex gap-2">
-        <Link
-          href={month ? `/transactions?month=${month}` : "/transactions"}
-          className={`rounded-md border px-3 py-2 text-sm ${
-            !validType ? "bg-black text-white" : "bg-white text-gray-700"
-          }`}
-        >
-          All
-        </Link>
+      <section
+        className="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+        aria-label="Search and filter transactions"
+      >
+        <TransactionSearch />
 
-        <Link
-          href={
-            month
-              ? `/transactions?type=revenue&month=${month}`
-              : "/transactions?type=revenue"
-          }
-          className={`rounded-md border px-3 py-2 text-sm ${
-            validType === "revenue"
-              ? "bg-black text-white"
-              : "bg-white text-gray-700"
-          }`}
-        >
-          Revenue
-        </Link>
+        <nav className="flex gap-2" aria-label="Filter transactions by type">
+          <Link
+            href={buildFilterHref({ month, search })}
+            className={`rounded-md border px-3 py-2 text-sm transition-colors ${
+              !validType
+                ? "border-blue-700 bg-blue-700 text-white"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-blue-50"
+            }`}
+          >
+            All
+          </Link>
 
-        <Link
-          href={
-            month
-              ? `/transactions?type=expense&month=${month}`
-              : "/transactions?type=expense"
-          }
-          className={`rounded-md border px-3 py-2 text-sm ${
-            validType === "expense"
-              ? "bg-black text-white"
-              : "bg-white text-gray-700"
-          }`}
-        >
-          Expenses
-        </Link>
-      </div>
+          <Link
+            href={buildFilterHref({
+              type: "revenue",
+              month,
+              search,
+            })}
+            className={`rounded-md border px-3 py-2 text-sm transition-colors ${
+              validType === "revenue"
+                ? "border-blue-700 bg-blue-700 text-white"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-blue-50"
+            }`}
+          >
+            Revenue
+          </Link>
 
-      <div className="mt-8 overflow-x-auto rounded-lg border">
-        <table className="min-w-[800px] w-full text-left">
-          <thead className="border-b bg-gray-50 text-gray-600">
+          <Link
+            href={buildFilterHref({
+              type: "expense",
+              month,
+              search,
+            })}
+            className={`rounded-md border px-3 py-2 text-sm transition-colors ${
+              validType === "expense"
+                ? "border-blue-700 bg-blue-700 text-white"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-blue-50"
+            }`}
+          >
+            Expenses
+          </Link>
+        </nav>
+      </section>
+
+      <section className="mt-8 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table className="w-full text-left">
+          <thead className="border-b border-slate-200 bg-slate-50 text-slate-600">
             <tr>
               <th className="w-32 p-4 text-sm font-medium">Date</th>
               <th className="p-4 text-sm font-medium">Description</th>
@@ -128,11 +172,12 @@ export default async function TransactionsPage({
               </th>
             </tr>
           </thead>
+
           <tbody>
             {allTransactions.map((transaction) => (
               <tr
                 key={transaction.id}
-                className="border-b transition-colors last:border-b-0 hover:bg-gray-50"
+                className="border-b transition-colors last:border-b-0 hover:bg-blue-50/40"
               >
                 <td className="p-4 text-sm">{formatDate(transaction.date)}</td>
 
@@ -161,9 +206,20 @@ export default async function TransactionsPage({
                 </td>
               </tr>
             ))}
+
+            {allTransactions.length === 0 && (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="p-8 text-center text-sm text-slate-500"
+                >
+                  No transactions found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
