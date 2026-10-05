@@ -10,14 +10,14 @@ export default function FinancialInsights({
 }: FinancialInsightsProps) {
   return (
     <section className="mt-10">
-      <header>
+      <header className="text-center md:text-left">
         <h2 className="text-xl font-semibold">Financial insights</h2>
         <p className="mt-1 text-sm text-gray-500">
           Key observations based on financial performance and budget data.
         </p>
       </header>
 
-      <section className="mt-6 grid grid-cols-3 gap-4">
+      <section className="mt-6 grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
         {insights.map((insight) => {
           // Velger tekstfarge ut fra hvordan innsikten er klassifisert.
           const statusClass =
@@ -28,13 +28,15 @@ export default function FinancialInsights({
                 : "text-gray-500";
 
           return (
-            <article key={insight.title} className="rounded-lg border p-5">
+            <article
+              key={insight.title}
+              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              {" "}
               <p className={`text-xs font-medium uppercase ${statusClass}`}>
                 {insight.type}
               </p>
-
               <h3 className="mt-2 font-semibold">{insight.title}</h3>
-
               <p className="mt-2 text-sm text-gray-600">{insight.message}</p>
             </article>
           );

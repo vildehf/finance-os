@@ -1,14 +1,62 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  ChartNoAxesCombined,
+  LayoutDashboard,
+  ReceiptText,
+} from "lucide-react";
+
+// Definerer hovedsidene og ikonene som vises i navigasjonen.
+const navigationItems = [
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/transactions", label: "Transactions", icon: ReceiptText },
+  { href: "/reports", label: "Reports", icon: ChartNoAxesCombined },
+];
 
 export default function SideBar() {
-  return (
-    <aside className="w-64 border-2 p-6">
-      <h2 className="text-xl font-semibold">FinanceOS</h2>
+  // Henter aktiv URL slik at riktig navigasjonslenke kan markeres.
+  const pathname = usePathname();
 
-      <nav className="mt-8 flex flex-col gap-3">
-        <Link href="/">Dashboard</Link>
-        <Link href="/transactions">Transactions</Link>
-        <Link href="/reports">Reports</Link>
+  return (
+    <aside className="w-full border-b border-slate-200 bg-white p-4 md:min-h-screen md:w-64 md:border-r md:border-b-0 md:p-6">
+      <header>
+        <Link
+          href="/"
+          className="flex items-center justify-center gap-3 rounded-lg md:justify-start"
+        >
+          <span
+            aria-hidden="true"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-700 text-sm font-semibold text-white shadow-sm"
+          >
+            F
+          </span>
+
+          <span className="text-xl font-semibold tracking-tight">
+            FinanceOS
+          </span>
+        </Link>
+      </header>
+      <nav className="mt-6 flex gap-2 md:mt-8 md:flex-col md:gap-3">
+        {navigationItems.map((item) => {
+          const isActive = pathname === item.href;
+          const Icon = item.icon;
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-blue-50 ${
+                isActive
+                  ? "bg-blue-50 font-medium text-blue-700 shadow-sm ring-1 ring-blue-100"
+                  : "text-slate-600"
+              }`}
+            >
+              <Icon size={18} aria-hidden="true" /> {item.label}
+            </Link>
+          );
+        })}
       </nav>
     </aside>
   );

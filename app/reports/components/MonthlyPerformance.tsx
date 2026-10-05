@@ -34,7 +34,7 @@ export default function MonthlyPerformance({
 
       <div className="mt-6 grid grid-cols-2 gap-4">
         {/* Previous month */}
-        <article className="rounded-lg border p-5">
+        <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <h3 className="text-sm text-gray-500">{previousMonth.label}</h3>
 
           {hasPreviousMonthData ? (
@@ -57,7 +57,7 @@ export default function MonthlyPerformance({
         </article>
 
         {/* Selected month */}
-        <article className="rounded-lg border p-5">
+        <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <h3 className="text-sm text-gray-500">{selectedMonth.label}</h3>
 
           <p className="mt-2 font-medium">

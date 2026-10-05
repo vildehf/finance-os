@@ -84,33 +84,60 @@ export default async function Home() {
   const profitChange = calculatePercentageChange(profit, previousProfit);
 
   return (
-    <div className="p-8">
-      <div>
-        <p className="text-sm text-gray-500">September 2026</p>
-        <h1 className="text-3xl font-semibold">Overview</h1>
-      </div>
+    <main className="min-h-screen bg-slate-50 p-4 md:p-8">
+      <header className="text-center md:text-left">
+        <p className="text-sm font-medium text-blue-700">September 2026</p>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight">Overview</h1>
+        <p className="mt-2 text-sm text-slate-500">
+          Financial performance at a glance.
+        </p>
+      </header>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
-        <KpiCard
-          title="Revenue"
-          value={`${revenue.toLocaleString("nb-NO")} kr`}
-          change={`${revenueChange >= 0 ? "+" : ""}${revenueChange.toFixed(1)}%`}
-          href="/transactions?type=revenue"
-        />
+      <section className="mt-8 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          <KpiCard
+            title="Revenue"
+            value={`${revenue.toLocaleString("nb-NO")} kr`}
+            change={`${revenueChange >= 0 ? "+" : ""}${revenueChange.toFixed(1)}%`}
+            href="/transactions?type=revenue"
+            status={
+              revenueChange > 0
+                ? "positive"
+                : revenueChange < 0
+                  ? "negative"
+                  : "neutral"
+            }
+          />
 
-        <KpiCard
-          title="Expenses"
-          value={`${expenses.toLocaleString("nb-NO")} kr`}
-          change={`${expenseChange >= 0 ? "+" : ""}${expenseChange.toFixed(1)}%`}
-          href="/transactions?type=expense"
-        />
+          <KpiCard
+            title="Expenses"
+            value={`${expenses.toLocaleString("nb-NO")} kr`}
+            change={`${expenseChange >= 0 ? "+" : ""}${expenseChange.toFixed(1)}%`}
+            href="/transactions?type=expense"
+            status={
+              expenseChange < 0
+                ? "positive"
+                : expenseChange > 0
+                  ? "negative"
+                  : "neutral"
+            }
+          />
 
-        <KpiCard
-          title="Profit"
-          value={`${profit.toLocaleString("nb-NO")} kr`}
-          change={`${profitChange >= 0 ? "+" : ""}${profitChange.toFixed(1)}%`}
-        />
-      </div>
-    </div>
+          <KpiCard
+            title="Profit"
+            value={`${profit.toLocaleString("nb-NO")} kr`}
+            change={`${profitChange >= 0 ? "+" : ""}${profitChange.toFixed(1)}%`}
+            status={
+              profitChange > 0
+                ? "positive"
+                : profitChange < 0
+                  ? "negative"
+                  : "neutral"
+            }
+            href="/reports"
+          />
+        </div>
+      </section>
+    </main>
   );
 }
