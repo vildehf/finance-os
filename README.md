@@ -8,6 +8,20 @@ The application currently uses sample financial data and is intended as a demons
 
 **Live Demo:** [View FinanceOS](https://finance-os-zeta.vercel.app/)
 
+## Screenshots
+
+### Dashboard
+
+![FinanceOS Dashboard](screenshots/Dashboard.jpeg)
+
+### Transactions
+
+![FinanceOS Transactions](screenshots/Transactions.jpeg)
+
+### Reports
+
+![FinanceOS Reports](screenshots/Reports.jpeg)
+
 ## Features
 
 - **Dashboard** – Overview of revenue, expenses, and profit, including month-over-month changes.
