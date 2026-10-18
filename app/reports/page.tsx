@@ -16,6 +16,7 @@ import {
 import FinancialOverview from "./components/FinancialOverview";
 import Link from "next/link";
 import { Download } from "lucide-react";
+import ReportMetricCard from "./components/ReportMetricCard";
 
 export default async function ReportsPage({
   searchParams,
@@ -150,30 +151,21 @@ export default async function ReportsPage({
       />
 
       {/* Nøkkeltall for valgt måned */}
+      {/* Nøkkeltall for valgt måned */}
       <section className="mt-8 grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
-        <article className="rounded-lg border p-5">
-          <p className="text-sm text-gray-500">Revenue</p>
+        <ReportMetricCard
+          label="Revenue"
+          amount={selectedRevenue}
+          href={`/transactions?month=${selectedMonth}&type=revenue`}
+        />
 
-          <p className="mt-2 text-2xl font-semibold">
-            {selectedRevenue.toLocaleString("nb-NO")} kr
-          </p>
-        </article>
+        <ReportMetricCard
+          label="Expenses"
+          amount={selectedExpenses}
+          href={`/transactions?month=${selectedMonth}&type=expense`}
+        />
 
-        <article className="rounded-lg border p-5">
-          <p className="text-sm text-gray-500">Expenses</p>
-
-          <p className="mt-2 text-2xl font-semibold">
-            {selectedExpenses.toLocaleString("nb-NO")} kr
-          </p>
-        </article>
-
-        <article className="rounded-lg border p-5">
-          <p className="text-sm text-gray-500">Profit</p>
-
-          <p className="mt-2 text-2xl font-semibold">
-            {selectedProfit.toLocaleString("nb-NO")} kr
-          </p>
-        </article>
+        <ReportMetricCard label="Profit" amount={selectedProfit} />
       </section>
 
       {/* Månedssammenligning */}
