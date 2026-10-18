@@ -5,11 +5,7 @@ import Forecast from "./components/Forecast";
 import { calculateForecast } from "./lib/forecast";
 import { generateFinancialInsights } from "./lib/insights";
 import FinancialInsights from "./components/FinancialInsights";
-import {
-  getBudgetByMonth,
-  getTotalsByMonthAndType,
-  getTotalsByType,
-} from "./lib/report-data";
+import { getBudgetByMonth, getTotalsByMonthAndType } from "./lib/report-data";
 import {
   calculateBarWidth,
   calculatePercentageChange,
@@ -18,6 +14,8 @@ import {
   getPreviousMonth,
 } from "./lib/report-calculations";
 import FinancialOverview from "./components/FinancialOverview";
+import Link from "next/link";
+import { Download } from "lucide-react";
 
 export default async function ReportsPage({
   searchParams,
@@ -27,7 +25,6 @@ export default async function ReportsPage({
   const params = await searchParams;
 
   // Henter transaksjonstall som brukes i rapportberegningene.
-  const totalsByType = await getTotalsByType();
   const totalsByMonthAndType = await getTotalsByMonthAndType();
 
   // Lager en sortert liste over måneder som finnes i transaksjonsdataene.
@@ -50,16 +47,6 @@ export default async function ReportsPage({
   // Lager lesbare labels for valgt måned og måneden før.
   const selectedMonthLabel = formatMonthLabel(selectedMonth);
   const previousMonthLabel = formatMonthLabel(previousMonth);
-
-  const revenue = Number(
-    totalsByType.find((row) => row.type === "revenue")?.total ?? 0,
-  );
-
-  const expenses = Number(
-    totalsByType.find((row) => row.type === "expense")?.total ?? 0,
-  );
-
-  const profit = revenue - expenses;
 
   // Henter økonomitallene for måneden brukeren har valgt.
   const selectedFinancials = getMonthlyFinancials(
@@ -139,12 +126,22 @@ export default async function ReportsPage({
   return (
     <main className="min-h-screen bg-slate-50 p-4 md:p-8">
       {/* Sideoverskrift */}
-      <header className="text-center md:text-left">
-        <h1 className="text-3xl font-semibold">Reports</h1>
+      <header className="flex flex-col gap-4 text-center md:flex-row md:items-center md:justify-between md:text-left">
+        <div>
+          <h1 className="text-3xl font-semibold">Reports</h1>
 
-        <p className="mt-2 text-gray-500">
-          Analyze company financial performance.
-        </p>
+          <p className="mt-2 text-gray-500">
+            Analyze company financial performance.
+          </p>
+        </div>
+
+        <Link
+          href={`/reports/export?month=${selectedMonth}`}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-800"
+        >
+          <Download size={18} aria-hidden="true" />
+          Export CSV
+        </Link>
       </header>
 
       <MonthSelector
@@ -152,13 +149,13 @@ export default async function ReportsPage({
         selectedMonth={selectedMonth}
       />
 
-      {/* Totaltall */}
+      {/* Nøkkeltall for valgt måned */}
       <section className="mt-8 grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
         <article className="rounded-lg border p-5">
           <p className="text-sm text-gray-500">Revenue</p>
 
           <p className="mt-2 text-2xl font-semibold">
-            {revenue.toLocaleString("nb-NO")} kr
+            {selectedRevenue.toLocaleString("nb-NO")} kr
           </p>
         </article>
 
@@ -166,7 +163,7 @@ export default async function ReportsPage({
           <p className="text-sm text-gray-500">Expenses</p>
 
           <p className="mt-2 text-2xl font-semibold">
-            {expenses.toLocaleString("nb-NO")} kr
+            {selectedExpenses.toLocaleString("nb-NO")} kr
           </p>
         </article>
 
@@ -174,7 +171,7 @@ export default async function ReportsPage({
           <p className="text-sm text-gray-500">Profit</p>
 
           <p className="mt-2 text-2xl font-semibold">
-            {profit.toLocaleString("nb-NO")} kr
+            {selectedProfit.toLocaleString("nb-NO")} kr
           </p>
         </article>
       </section>
