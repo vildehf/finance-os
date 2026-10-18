@@ -5,7 +5,11 @@ import Forecast from "./components/Forecast";
 import { calculateForecast } from "./lib/forecast";
 import { generateFinancialInsights } from "./lib/insights";
 import FinancialInsights from "./components/FinancialInsights";
-import { getBudgetByMonth, getTotalsByMonthAndType } from "./lib/report-data";
+import {
+  getBudgetByMonth,
+  getTotalsByMonthAndType,
+  getExpensesByCategory,
+} from "./lib/report-data";
 import {
   calculateBarWidth,
   calculatePercentageChange,
@@ -17,6 +21,7 @@ import FinancialOverview from "./components/FinancialOverview";
 import Link from "next/link";
 import { Download } from "lucide-react";
 import ReportMetricCard from "./components/ReportMetricCard";
+import CategoryBreakdown from "./components/CategoryBreakdown";
 
 export default async function ReportsPage({
   searchParams,
@@ -35,6 +40,13 @@ export default async function ReportsPage({
   // Bruker nyeste tilgjengelige måned dersom URL-en ikke har valgt en måned.
   const latestMonth = availableMonths.at(-1) ?? "2026-09";
   const selectedMonth = params.month ?? latestMonth;
+
+  // Henter utgifter gruppert etter kategori for valgt rapportmåned.
+  const expensesByCategory = await getExpensesByCategory(selectedMonth);
+  const categoryExpenses = expensesByCategory.map((item) => ({
+    category: item.category,
+    total: Number(item.total),
+  }));
 
   // Henter budsjettet som tilhører måneden brukeren har valgt.
   const selectedBudget = await getBudgetByMonth(selectedMonth);
@@ -221,6 +233,9 @@ export default async function ReportsPage({
 
       {/* Viser nøkkelinnsikter basert på rapportdataene for valgt periode. */}
       <FinancialInsights insights={insights} />
+
+      {/* Viser hvordan utgiftene fordeler seg mellom kategorier. */}
+      <CategoryBreakdown expenses={categoryExpenses} />
 
       {/* Viser forecast når nok historikk finnes, ellers forklarer hvorfor den ikke kan beregnes. */}
       {forecast ? (
