@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { budgets, transactions } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, gte, lt, sql } from "drizzle-orm";
 
 // Henter totale inntekter og kostnader på tvers av alle transaksjoner.
 export async function getTotalsByType() {
@@ -34,4 +34,30 @@ export async function getBudgetByMonth(month: string) {
     .limit(1);
 
   return budget;
+}
+
+// Henter totale utgifter per kategori for valgt rapportmåned.
+export async function getExpensesByCategory(month: string) {
+  const startDate = `${month}-01`;
+
+  // Finner første dag i neste måned som øvre datogrense.
+  const [year, monthNumber] = month.split("-").map(Number);
+  const nextMonth = new Date(Date.UTC(year, monthNumber, 1));
+  const endDate = nextMonth.toISOString().slice(0, 10);
+
+  return db
+    .select({
+      category: transactions.category,
+      total: sql<string>`SUM(${transactions.amount})`,
+    })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.type, "expense"),
+        gte(transactions.date, startDate),
+        lt(transactions.date, endDate),
+      ),
+    )
+    .groupBy(transactions.category)
+    .orderBy(sql`SUM(${transactions.amount}) DESC`);
 }
