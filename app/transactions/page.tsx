@@ -110,53 +110,63 @@ export default async function TransactionsPage({
 
       {/* Filter */}
       <section
-        className="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+        className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
         aria-label="Search and filter transactions"
       >
         <TransactionSearch />
 
-        <nav className="flex gap-2" aria-label="Filter transactions by type">
-          <Link
-            href={buildFilterHref({ month, search })}
-            className={`rounded-md border px-3 py-2 text-sm transition-colors ${
-              !validType
-                ? "border-blue-700 bg-blue-700 text-white"
-                : "border-slate-200 bg-white text-slate-700 hover:bg-blue-50"
-            }`}
-          >
-            All
-          </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <nav className="flex gap-2" aria-label="Filter transactions by type">
+            <Link
+              href={buildFilterHref({ month, search })}
+              className={`rounded-md border px-3 py-2 text-sm transition-colors ${
+                !validType
+                  ? "border-blue-700 bg-blue-700 text-white"
+                  : "border-slate-200 bg-white text-slate-700 hover:bg-blue-50"
+              }`}
+            >
+              All
+            </Link>
 
-          <Link
-            href={buildFilterHref({
-              type: "revenue",
-              month,
-              search,
-            })}
-            className={`rounded-md border px-3 py-2 text-sm transition-colors ${
-              validType === "revenue"
-                ? "border-blue-700 bg-blue-700 text-white"
-                : "border-slate-200 bg-white text-slate-700 hover:bg-blue-50"
-            }`}
-          >
-            Revenue
-          </Link>
+            <Link
+              href={buildFilterHref({
+                type: "revenue",
+                month,
+                search,
+              })}
+              className={`rounded-md border px-3 py-2 text-sm transition-colors ${
+                validType === "revenue"
+                  ? "border-blue-700 bg-blue-700 text-white"
+                  : "border-slate-200 bg-white text-slate-700 hover:bg-blue-50"
+              }`}
+            >
+              Revenue
+            </Link>
 
-          <Link
-            href={buildFilterHref({
-              type: "expense",
-              month,
-              search,
-            })}
-            className={`rounded-md border px-3 py-2 text-sm transition-colors ${
-              validType === "expense"
-                ? "border-blue-700 bg-blue-700 text-white"
-                : "border-slate-200 bg-white text-slate-700 hover:bg-blue-50"
-            }`}
-          >
-            Expenses
-          </Link>
-        </nav>
+            <Link
+              href={buildFilterHref({
+                type: "expense",
+                month,
+                search,
+              })}
+              className={`rounded-md border px-3 py-2 text-sm transition-colors ${
+                validType === "expense"
+                  ? "border-blue-700 bg-blue-700 text-white"
+                  : "border-slate-200 bg-white text-slate-700 hover:bg-blue-50"
+              }`}
+            >
+              Expenses
+            </Link>
+          </nav>
+          {(validType || month || search) && (
+            <Link
+              href="/transactions"
+              className="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+            >
+              Clear filters
+            </Link>
+          )}
+        </div>
       </section>
 
       <section className="mt-8 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
