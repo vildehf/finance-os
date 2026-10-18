@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   ReceiptText,
 } from "lucide-react";
+import UserAvatar from "./UserAvatar";
 
 // Definerer hovedsidene og ikonene som vises i navigasjonen.
 const navigationItems = [
@@ -20,7 +21,7 @@ export default function SideBar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-full border-b border-slate-200 bg-white p-4 md:min-h-screen md:w-64 md:border-r md:border-b-0 md:p-6">
+    <aside className="flex w-full flex-col border-b border-slate-200 bg-white p-4 md:min-h-screen md:w-64 md:border-r md:border-b-0 md:p-6">
       <header>
         <Link
           href="/"
@@ -58,6 +59,9 @@ export default function SideBar() {
           );
         })}
       </nav>
+      <div className="mt-auto hidden pt-8 md:block">
+        <UserAvatar name="Demo User" subtitle="FinanceOS Workspace" />
+      </div>
     </aside>
   );
 }
