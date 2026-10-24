@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
     "seed:budgets": "tsx --env-file=.env.local db/seed-budgets.ts",
     "seed:transactions": "tsx --env-file=.env.local db/seed-transactions.ts"
   },
