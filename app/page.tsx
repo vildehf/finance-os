@@ -1,59 +1,19 @@
-import { db } from "../db";
 import KpiCard from "./components/KpiCard";
-import { transactions } from "../db/schema";
-import { and, eq, gte, lt, desc } from "drizzle-orm";
 import { getTotalsByMonthAndType } from "./reports/lib/report-data";
 import { getMonthlyFinancials } from "./reports/lib/report-calculations";
 import FinancialTrendChart from "./components/FinancialTrendChart";
+import { calculatePercentageChange } from "./lib/dashboard-calculations";
+import {
+  getLatestTransactionDate,
+  getDashboardKpis,
+} from "./lib/dashboard-data";
 
 // Sørger for at dashboardet henter oppdaterte data fra databasen ved hver forespørsel.
 export const dynamic = "force-dynamic";
 
-//Henter transaksjoner for en bestemt type og periode,
-// og returnerer summen av beløpene
-async function getTransactionTotal(
-  type: "revenue" | "expense",
-  startDate: string,
-  endDate: string,
-) {
-  const result = await db
-    .select()
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.type, type),
-        gte(transactions.date, startDate),
-        lt(transactions.date, endDate),
-      ),
-    );
-
-  return result.reduce((total, transaction) => {
-    return total + Number(transaction.amount);
-  }, 0);
-}
-
-// Beregner prosentvis endring mellom verdier
-// Returnerer 0 hvis forrige verdi er 0, slik at vi unngår deling på 0
-function calculatePercentageChange(
-  currentValue: number,
-  previousValue: number,
-) {
-  if (previousValue === 0) {
-    return 0;
-  }
-
-  return ((currentValue - previousValue) / previousValue) * 100;
-}
-
 export default async function Home() {
   // Finn den nyeste transaksjonsdatoen i databasen
-  const latestTransactions = await db
-    .select({ date: transactions.date })
-    .from(transactions)
-    .orderBy(desc(transactions.date))
-    .limit(1);
-
-  const latestDate = latestTransactions[0]?.date;
+  const latestDate = await getLatestTransactionDate();
   // Henter månedlige økonomitall til dashboardgrafen
   const totalsByMonthAndType = await getTotalsByMonthAndType();
 
@@ -91,33 +51,19 @@ export default async function Home() {
   const previousMonth = new Date(Date.UTC(year, month - 1, 1));
   const previousStartDate = previousMonth.toISOString().slice(0, 10);
 
-  // Henter inntekter for den nyeste måneden
-  const revenue = await getTransactionTotal("revenue", startDate, endDate);
+  // Henter KPI-tall for valgt måned og måneden før.
+  const {
+    revenue,
+    previousRevenue,
+    expenses,
+    previousExpenses,
+    profit,
+    previousProfit,
+  } = await getDashboardKpis(startDate, endDate, previousStartDate);
 
-  // Henter inntekter for forrige måned
-  const previousRevenue = await getTransactionTotal(
-    "revenue",
-    previousStartDate,
-    startDate,
-  );
-
+  // Beregner prosentvis endring for hvert nøkkeltall.
   const revenueChange = calculatePercentageChange(revenue, previousRevenue);
-
-  // Henter utgifter for den nyeste måneden
-  const expenses = await getTransactionTotal("expense", startDate, endDate);
-
-  // Henter utgifter for forrige måned
-  const previousExpenses = await getTransactionTotal(
-    "expense",
-    previousStartDate,
-    startDate,
-  );
-
   const expenseChange = calculatePercentageChange(expenses, previousExpenses);
-
-  // Beregner resultat og prosentvis endring
-  const profit = revenue - expenses;
-  const previousProfit = previousRevenue - previousExpenses;
   const profitChange = calculatePercentageChange(profit, previousProfit);
 
   const monthLabel = new Intl.DateTimeFormat("en-GB", {
